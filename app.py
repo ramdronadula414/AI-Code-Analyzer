@@ -6,6 +6,8 @@ extracts code, and analyzes for malicious behavior, vulnerabilities, and suspici
 Uses Google Gemini API when available; falls back to a local heuristic analyzer on API failure.
 """
 
+import os
+
 import streamlit as st
 import io
 import json
@@ -929,19 +931,25 @@ def analyze_with_gemini(code: str, filename: str = "", settings: dict = None) ->
         if not GENAI_AVAILABLE:
             raise RuntimeError("google-generativeai package not available")
 
-        api_key = None
-        try:
-            api_key = st.secrets["GEMINI_API_KEY"]
-        except Exception:
-            api_key = None
+
+        # Try Render environment variable first
+        api_key = os.getenv("GEMINI_API_KEY")
+
+            # Fallback to Streamlit secrets for local development
+        if not api_key:
+            try:
+                api_key = st.secrets["GEMINI_API_KEY"]
+            except Exception:
+                    api_key = None
 
         if not api_key:
-            raise RuntimeError("Gemini API key not found in Streamlit secrets")
-
+            raise RuntimeError("Gemini API key not found. Configure GEMINI_API_KEY in Render Environment Variables or Streamlit secrets.")
         model_map = {
             "Gemini 2.5 Flash": "gemini-2.5-pro",
             "Gemini 1.5 Pro": "gemini-1.5-pro",
             "Gemini 1.0": "gemini-1.0",
+            "Gemini 2.5 Flash": "gemini-2.5-flash",
+            "Gemini 1.5 Pro": "gemini-1.5-pro",
         }
         selected_model = "gemini-2.5-pro"
 
@@ -1166,156 +1174,68 @@ def display_analysis_result(result: dict, code_preview: str):
         table_html += f"<td>{row['recommendation']}</td>"
         table_html += "</tr>"
 
-    render_threat_report_and_findings(result, code_preview)
-
-
-def render_threat_report_and_findings(result: dict, code_preview: str):
-    """
-    Replace the existing THREAT REPORT / DETAILED FINDINGS rendering with this function.
-    Edit the sections marked with `# EDIT HERE` to customize categories, severity, descriptions, or recommendations.
-    """
-    # --- Build human-readable report text (editable in UI) ---
-    def build_report_text_local(res: dict, code_preview_text: str) -> str:
-        lines = []
-        lines.append("AI Code Analyzer - Threat Report")
-        lines.append("=" * 48)
-        lines.append(f"Classification: {res.get('classification', 'Unknown')}")
-        lines.append(f"Risk Score: {res.get('risk_score', 0)}%")
-        lines.append(f"Threat Level: {res.get('threat_level', 'Unknown')}")
-        lines.append("")
-        lines.append("Explanation:")
-        lines.append(res.get("explanation", "No explanation provided."))
-        lines.append("")
-        lines.append("Findings:")
-        for f in res.get("findings", []):
-            if isinstance(f, dict):
-                cat = f.get("category", "unknown")
-                evidence = f.get("pattern", f.get("evidence", ""))
-                lines.append(f"- {cat}: {evidence}")
-            else:
-                lines.append(f"- {str(f)}")
-        lines.append("")
-        lines.append("Recommendations:")
-        for r in res.get("recommendations", []):
-            lines.append(f"- {r}")
-        lines.append("")
-        lines.append("Code Preview (truncated to 1000 chars):")
-        lines.append(code_preview_text[:1000])
-        return "\n".join(lines)
-
-    report_text = build_report_text_local(result, code_preview)
-
-    # --- Editable report area and export buttons ---
-    st.markdown("<div class='glass-card report-panel'>", unsafe_allow_html=True)
-    st.markdown("<div class='panel-title'>🧾 THREAT REPORT</div>", unsafe_allow_html=True)
+    report_text = build_report_text(result, code_preview)
+    st.markdown("""
+        <div class='glass-card report-panel'>
+            <div class='panel-title'>🧾 THREAT REPORT</div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.text_area("🧾 THREAT REPORT (editable)", value=report_text, height=300, key="threat_report", label_visibility="collapsed")
-
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col1:
-        st.download_button("📄 .TXT (Plain Text)", data=report_text, file_name="threat_report.txt", mime="text/plain")
-    with col2:
-        st.download_button("📄 .PDF (Vector Report)", data=build_pdf_bytes(report_text), file_name="threat_report.pdf", mime="application/pdf")
-    with col3:
-        st.download_button("📄 .DOCX (Formatted Document)", data=build_docx_bytes(report_text), file_name="threat_report.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    export_col1, export_col2, export_col3 = st.columns([1, 1, 1])
+    with export_col1:
+        st.download_button("📄 .TXT (Plain Text)", data=report_text, file_name="threat_report.txt", mime="text/plain", key="download_txt")
+    with export_col2:
+        st.download_button("📄 .PDF (Vector Report)", data=build_pdf_bytes(report_text), file_name="threat_report.pdf", mime="application/pdf", key="download_pdf")
+    with export_col3:
+        st.download_button("📄 .DOCX (Formatted Document)", data=build_docx_bytes(report_text), file_name="threat_report.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document", key="download_docx")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- Detailed findings table (editable mapping below) ---
-    # EDIT HERE: customize category_labels and category_meta to change displayed names, severities, descriptions, and recommendations
-    category_labels = {
-        "command_execution": "Command Execution",
-        "reverse_shell": "Reverse Shell",
-        "data_exfiltration": "Data Exfiltration",
-        "keylogging": "Keylogging",
-        "obfuscation": "Obfuscation",
-        "persistence": "Persistence",
-        "ransomware": "Ransomware",
-        "hardcoded_credentials": "Hardcoded Credentials",
-        "sql_injection": "SQL Injection",
-        "xss": "Cross-Site Scripting",
-        "unsafe_file_handling": "Unsafe File Handling",
-        "dangerous_libraries": "Dangerous Library Use",
-        "external_connections": "External Connection",
-        "encoded_payload": "Encoded Payload",
-    }
-
-    # EDIT HERE: change severity, description, recommendation text per category
-    category_meta = {
-        "command_execution": ("High", "Suspicious shell or command execution detected.", "Avoid direct shell execution; use safe APIs and parameterized inputs."),
-        "reverse_shell": ("Critical", "Remote shell or connection patterns found.", "Block remote shell code; restrict outbound network access and validate endpoints."),
-        "data_exfiltration": ("High", "Potential data exfiltration channel detected.", "Monitor and restrict outbound traffic; require TLS and authentication."),
-        "keylogging": ("High", "Keylogging or input capture behavior detected.", "Remove keylogger code; ensure user consent and secure input handling."),
-        "obfuscation": ("Medium", "Code obfuscation techniques were identified.", "Decode and review obfuscated payloads before execution."),
-        "persistence": ("High", "Persistence mechanisms found that may maintain access.", "Remove unauthorized startup persistence behavior."),
-        "ransomware": ("Critical", "Encryption or ransomware-like behavior detected.", "Do not perform unauthorized encryption; isolate affected systems."),
-        "hardcoded_credentials": ("Medium", "Embedded credentials were found in code.", "Move secrets to secure vaults and rotate keys."),
-        "sql_injection": ("High", "Unparameterized queries or injection risk detected.", "Use parameterized queries and input validation."),
-        "xss": ("High", "Potential cross-site scripting behavior found.", "Sanitize outputs and avoid unsafe DOM operations."),
-        "unsafe_file_handling": ("Medium", "Unsafe file handling or deletion patterns found.", "Use safe file APIs and restrict destructive operations."),
-        "dangerous_libraries": ("Medium", "Use of dangerous or insecure libraries detected.", "Review and replace insecure third-party libraries."),
-        "external_connections": ("Medium", "External connection or IP evidence found.", "Whitelist trusted endpoints and monitor outbound connections."),
-        "encoded_payload": ("High", "Long encoded payloads or binary data found.", "Investigate encoded data and decode before execution."),
-    }
-
-    findings = result.get("findings", [])
-    if not findings:
-        findings = [{"category": "none", "pattern": "No abnormal patterns detected.", "evidence": "No direct evidence available."}]
-
-    # Build HTML table rows
-    table_html = ""
-    for item in findings:
-        category = item.get("category", "unknown")
-        evidence = item.get("pattern") or item.get("evidence") or "No evidence available."
-        threat_name = category_labels.get(category, category.replace("_", " ").title())
-        severity, description_text, recommendation_text = category_meta.get(
-            category,
-            ("Info", "No specific category details available.", "Review the suspicious item in context.")
-        )
-        table_html += "<tr>"
-        table_html += f"<td>{threat_name}</td>"
-        table_html += f"<td>{threat_name}</td>"
-        table_html += f"<td>{severity}</td>"
-        table_html += f"<td>{evidence}</td>"
-        table_html += f"<td>{description_text}</td>"
-        table_html += f"<td>{recommendation_text}</td>"
-        table_html += "</tr>"
-
-    # Render findings table
-    st.markdown("""
-        <div class='glass-panel'>
-            <div class='panel-title'>⚠ DETAILED FINDINGS</div>
-            <div class='threat-table-wrapper'>
-                <table class='threat-table'>
-                    <thead>
-                        <tr>
-                            <th>Threat</th>
-                            <th>Category</th>
-                            <th>Severity</th>
-                            <th>Evidence</th>
-                            <th>Description</th>
-                            <th>Recommendation</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-    """ + table_html + """
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # --- Security recommendations panel (uses result['recommendations']) ---
-    st.markdown("<div class='glass-panel'><div class='panel-title'>🔐 SECURITY RECOMMENDATIONS</div></div>", unsafe_allow_html=True)
-    for index, rec in enumerate(result.get("recommendations", []), start=1):
-        icon = "🔐" if index == 1 else "🛠️" if index == 2 else "🛡️" if index == 3 else "⚙️"
-        st.markdown(f"""
-            <div class='recommendation-item'>
-                <div class='recommendation-number'>{index}</div>
-                <div class='recommendation-content'>
-                    <div class='recommendation-title'>Recommendation {index}</div>
-                    <div class='recommendation-detail'><span class='recommendation-icon'>{icon}</span> {rec}</div>
+    left_col, right_col = st.columns([2, 1], gap="large")
+    with left_col:
+        st.markdown("""
+            <div class='glass-panel'>
+                <div class='panel-title'>⚠ DETAILED FINDINGS</div>
+                <div class='threat-table-wrapper'>
+                    <table class='threat-table'>
+                        <thead>
+                            <tr>
+                                <th>Threat</th>
+                                <th>Category</th>
+                                <th>Severity</th>
+                                <th>Evidence</th>
+                                <th>Description</th>
+                                <th>Recommendation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            """ + table_html + """
+                        </tbody>
+                    </table>
                 </div>
             </div>
         """, unsafe_allow_html=True)
+
+    with right_col:
+        st.markdown("""
+            <div class='glass-panel'>
+                <div class='panel-title'>🔐 SECURITY RECOMMENDATIONS</div>
+            </div>
+        """, unsafe_allow_html=True)
+        for index, rec in enumerate(recommendations, start=1):
+            icon = "🔐" if index == 1 else "🛠️" if index == 2 else "🛡️" if index == 3 else "⚙️"
+            st.markdown(
+                f"""
+                <div class='recommendation-item'>
+                    <div class='recommendation-number'>{index}</div>
+                    <div class='recommendation-content'>
+                        <div class='recommendation-title'>Recommendation {index}</div>
+                        <div class='recommendation-detail'><span class='recommendation-icon'>{icon}</span> {rec}</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 
 def build_report_text(result: dict, code_preview: str) -> str:
