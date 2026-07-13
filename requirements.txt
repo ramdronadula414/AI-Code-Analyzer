@@ -1,5 +1,5 @@
 # requirements.txt
-streamlit
+streamlit==1.41.1
 google-generativeai
 pypdf
 python-docx
