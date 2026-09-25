@@ -1,11 +1,12 @@
 """AI Code Analyzer v2 — detection, defensive corrections and clear reports."""
 
-import os
+from pathlib import Path
 
 import streamlit as st
 
-from analyzer import (DEFAULT_MODEL, LANGUAGES, MAX_CODE_CHARS, VERSION, analyze_code,
+from analyzer import (LANGUAGES, MAX_CODE_CHARS, VERSION, analyze_code,
                       corrected_filename, detect_language, input_fingerprint)
+from configuration import load_configuration
 from file_processing import ALLOWED_EXTENSIONS, process_file
 from reports import build_docx_bytes, build_json_bytes, build_pdf_bytes, build_report_text
 
@@ -35,16 +36,6 @@ def inject_custom_styles():
     @media(max-width:640px) { .hero { padding:20px; } .block-container { padding:1rem; } }
     </style>
     """, unsafe_allow_html=True)
-
-
-def config_value(name, default=""):
-    value = os.getenv(name)
-    if not value:
-        try:
-            value = st.secrets.get(name, default)
-        except FileNotFoundError:
-            value = default
-    return str(value or default).strip()
 
 
 def code_language(language):
@@ -170,8 +161,9 @@ def render_result(result, source):
 
 def main():
     inject_custom_styles()
-    api_key = config_value("GEMINI_API_KEY")
-    model = config_value("GEMINI_MODEL", DEFAULT_MODEL)
+    configuration, configuration_warnings = load_configuration(Path(__file__).resolve().parent)
+    api_key = configuration["GEMINI_API_KEY"]
+    model = configuration["GEMINI_MODEL"]
     st.markdown("""
     <div class="hero"><div class="version">SECURITY WORKSPACE · VERSION 2.0</div>
     <h1>AI Code Analyzer</h1>
@@ -197,6 +189,8 @@ def main():
         st.caption(f"One complete file · up to {MAX_CODE_CHARS:,} characters · 5 MB upload limit")
     with right:
         st.subheader("Review options")
+        for message in configuration_warnings:
+            st.warning(message)
         engine = st.radio("Analysis engine", ["Gemini AI + local checks", "Local checks only"], key="engine")
         language = st.selectbox("Source language", ["Auto"] + list(LANGUAGES), key="language")
         generate = st.checkbox("Generate corrected source", value=True, key="generate_correction")

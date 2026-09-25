@@ -9,6 +9,7 @@ def test_local_ui_report_survives_rerun_and_invalidates_on_edit(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     app = AppTest.from_file("app.py", default_timeout=30).run()
     assert not app.exception
+    assert not app.error  # Missing optional secrets must not render duplicate errors.
     app.radio(key="engine").set_value("Local checks only")
     app.text_area(key="code_input").set_value(SOURCE)
     app.button(key="analyze_button").click().run()

@@ -33,7 +33,14 @@ GEMINI_API_KEY = "your-key-here"
 GEMINI_MODEL = "gemini-2.5-flash"
 ```
 
-Never commit the real key. Both environment variables and Streamlit secrets are supported; environment variables take priority. `.env` files are **not** loaded automatically. End users of a hosted app do not need their own key when the host has configured one.
+Never commit the real key. Configuration precedence is: environment variables, `.streamlit/secrets.toml` beside `app.py`, then `.streamlit/secrets.toml` in your user home directory. The app reads these TOML files directly, independently of the terminal's current directory; creating or editing the file takes effect on the next rerun. A missing file is optional and does not render Streamlit's repeated "No secrets found" errors. `.env` files are **not** loaded automatically. End users of a hosted app do not need their own key when the host has configured one.
+
+For example, when `app.py` is in `D:\projects\AI Code Analyzer`, save the key at `D:\projects\AI Code Analyzer\.streamlit\secrets.toml` (not `secrets.toml.txt`). Windows UTF-8 files with a BOM are supported. `GEMINI_MODEL` is optional. Restart with:
+
+```powershell
+Set-Location "D:\projects\AI Code Analyzer"
+python -m streamlit run app.py
+```
 
 `GEMINI_MODEL` defaults to `gemini-2.5-flash` for continuity with the existing project. Set it to a structured-output-capable model available to your Google account if that model is unavailable. Model access and quotas depend on the account. The app sends requests directly to the Gemini REST API with the key in a header; it no longer depends on the old `google-generativeai` package.
 
@@ -108,6 +115,7 @@ This update does not change your Render configuration or automatically deploy a 
 | File | Responsibility |
 | --- | --- |
 | `app.py` | Streamlit interface, configuration and per-session result/download state |
+| `configuration.py` | Environment and app-relative/user TOML configuration loading |
 | `analyzer.py` | Gemini request, validated review contract, local rules and correction checks |
 | `file_processing.py` | Bounded source/document extraction |
 | `reports.py` | Shared report content and TXT/JSON/PDF/Word serialization |
