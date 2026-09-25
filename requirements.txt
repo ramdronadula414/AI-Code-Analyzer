@@ -1,8 +1,4 @@
-# requirements.txt
 streamlit==1.41.1
-google-generativeai
-pypdf
-python-docx
-pandas
-python-magic
-requests
+pypdf>=5,<7
+python-docx>=1.1.2,<2
+reportlab>=4.2,<5
