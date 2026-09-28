@@ -1,21 +1,19 @@
-MIT License
+SOURCE-AVAILABLE NON-COMMERCIAL LICENSE
 
-Copyright (c) 2026 ramdronadula414
+Copyright (c) 2026 ramdronadula414. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission is granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to view, use, copy, and modify the Software solely for personal, educational, research, testing, and other non-commercial purposes, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. The Software and modified versions may not be sold, licensed for a fee, used as part of a paid product or service, or otherwise used for commercial purposes without prior written permission from the copyright holder.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. The Software, substantial portions of it, and modified versions may not be published, distributed, sublicensed, shared publicly, or made available to third parties without prior written permission from the copyright holder.
+
+3. The Software, substantial portions of it, and modified versions may not be uploaded, mirrored, forked for republication, or republished in another public or private Git repository, including GitHub, GitLab, Bitbucket, or similar source-code hosting services, without prior written permission from the copyright holder.
+
+4. Copies made for the permitted personal, educational, research, testing, or non-commercial use must retain this copyright notice and this license notice.
+
+5. No trademark rights or rights to represent the Software as the recipient's original work are granted by this license.
+
+Any use not expressly permitted by this license requires prior written permission from the copyright holder.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
